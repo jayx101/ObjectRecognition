@@ -1,4 +1,5 @@
 import cv2
+import time
 import matplotlib.pyplot as plt
 import math
 import os
@@ -77,16 +78,14 @@ def display_multi(imgs, imgisgray=True):
     """
     import matplotlib.gridspec as gridspec
 
-    cols = 8
+    cols = 4
     rows = math.ceil(((len(imgs) + 0.0) / cols))
     rows = int(rows)
-    print rows,  cols
     gs = gridspec.GridSpec(rows, cols, bottom=0., right=1., left=0., hspace=0., wspace=0.)
     i = 0
 
     for g in gs:
         ax = plt.subplot(g)
-        print imgs[i].size
         if imgisgray:
             imgs[i] = cv2.cvtColor(imgs[i], cv2.COLOR_GRAY2RGB)
         else:
@@ -94,9 +93,10 @@ def display_multi(imgs, imgisgray=True):
         ax.imshow(imgs[i])
         ax.set_xticks([])
         ax.set_yticks([])
-        # ax.set_aspect('auto')
-        print len(imgs), i
-        if len(imgs) - 1 > i: i += 1
+        if len(imgs) - 1 > i:
+            i += 1
+        else:
+            break
     plt.show()
 
 def write_imgs(path, imgs, prefix):
