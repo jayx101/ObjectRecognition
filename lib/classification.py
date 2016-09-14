@@ -5,14 +5,11 @@ from sklearn.svm import LinearSVC
 import imutils
 import joblib
 from sklearn import metrics
-from SimpleCV import (HueHistogramFeatureExtractor, EdgeHistogramFeatureExtractor, HaarLikeFeatureExtractor, ImageClass)
+# from SimpleCV import (HueHistogramFeatureExtractor, EdgeHistogramFeatureExtractor, HaarLikeFeatureExtractor, ImageClass)
 
-path_prefix = '/home/jacques/GitRepos/CV/Capstone/'
-feature_det = cv2.FeatureDetector_create("SURF")
-descr_ext = cv2.DescriptorExtractor_create("SURF")
-simple_cv = True
-
-descr_ext.setBool("extended", True)
+path_prefix = '/home/opencv/ObjectRecognition/'
+surf = cv2.xfeatures2d.SURF_create(400)
+simple_cv = False 
 
 # CONSTANTS
 TEST_PATH = path_prefix + 'dataset/test/'
@@ -75,8 +72,8 @@ def preProcessImages(image_paths):
     # loop through images in path and get desciptors
     for image_path in image_paths:
         im = cv2.imread(image_path)
-        kpts = feature_det.detect(im)
-        kpts, des = descr_ext.compute(im, kpts)
+        kpts = surf.detect(im)
+        kpts, des = surf.compute(im, kpts)
         descriptors.append(des)
 
     return descriptors
@@ -95,7 +92,7 @@ def getSimpleFeat(img):
 
     return feat
 
-def createBOWVocab(path_train,  bow_size=30):
+def createBOWVocab(path_train,  bow_size=400):
     bow_train = cv2.BOWKMeansTrainer(bow_size)
 
     for des in preProcessImages(path_train):
@@ -112,9 +109,10 @@ def extractX(image_paths, voc):
     bow_desc_extractor = createMatcher(voc)
 
     for imagepath in image_paths:
-        im = cv2.imread(imagepath, 0)
-        im = imutils.resize(im, width=300)
-        featureset = bow_desc_extractor.compute(im, feature_det.detect(im))
+        im = cv2.imread(imagepath,0)
+        # im = imutils.resize(im, width=300)
+        # print 'resize'
+        featureset = bow_desc_extractor.compute(im, surf.detect(im))
         if simple_cv:
             simple_feat = getSimpleFeat(im)
             simple_feat = np.array(simple_feat).reshape(-1, len(simple_feat))
@@ -130,7 +128,7 @@ def extractXfromimg(im, voc):
     bow_desc_extractor = createMatcher(voc)
 
     im = imutils.resize(im, width=300)
-    featureset = bow_desc_extractor.compute(im, feature_det.detect(im))
+    featureset = bow_desc_extractor.compute(im, surf.detect(im))
     if simple_cv:
         simple_feat = getSimpleFeat(im)
         simple_feat = np.array(simple_feat).reshape(-1, len(simple_feat))
@@ -143,7 +141,7 @@ def createMatcher(voc):
     # extract featues from vocab
     flann_params = dict(algorithm=0, trees=5)
     matcher = cv2.FlannBasedMatcher(flann_params, {})
-    bow_desc_extractor = cv2.BOWImgDescriptorExtractor(descr_ext, matcher)
+    bow_desc_extractor = cv2.BOWImgDescriptorExtractor(surf, matcher)
     bow_desc_extractor.setVocabulary(voc)
 
     return bow_desc_extractor
@@ -247,6 +245,7 @@ def predictImg(model, img):
 
     # get test data tuple 0=X, 1=y
     train_data = joblib.load(path_prefix + "lib/X.pkl")
+    print train_data[2]
     X = extractXfromimg(img, train_data[2])
 
     y_pred = model.predict(X)
@@ -255,14 +254,13 @@ def predictImg(model, img):
 
     return y_pred, hyperplane
 
-td = trainGen(LinearSVC, False)
+# td = trainGen(LinearSVC, True)
 # print td[0]
 # print td[1]
 # clf = LinearSVC()
-# train_data = getTrainData(True )
-# clf.fit(train_data[0], train_data[1])
+# clf.fit(td[0], td[1])
 
-# rep, df = predict(clf)
+# rep, df = predict(clf, True)
 
 # print rep
 # print df

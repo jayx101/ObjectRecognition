@@ -70,7 +70,7 @@ def display(img, fsize=(10, 8), axis='off', imgisgray=True):
     plt.axis(axis)
     plt.show()
 
-def display_multi(imgs, imgisgray=True):
+def display_multi(imgs, imgisgray=True, cols=4):
     """Dipslays images in a gridspec using Matplotlib
     Params:
         imgs: list of images
@@ -78,7 +78,6 @@ def display_multi(imgs, imgisgray=True):
     """
     import matplotlib.gridspec as gridspec
 
-    cols = 4
     rows = math.ceil(((len(imgs) + 0.0) / cols))
     rows = int(rows)
     gs = gridspec.GridSpec(rows, cols, bottom=0., right=1., left=0., hspace=0., wspace=0.)
@@ -89,7 +88,10 @@ def display_multi(imgs, imgisgray=True):
         if imgisgray:
             imgs[i] = cv2.cvtColor(imgs[i], cv2.COLOR_GRAY2RGB)
         else:
-            imgs[i] = cv2.cvtColor(imgs[i], cv2.COLOR_BGR2RGB)
+            try:
+                imgs[i] = cv2.cvtColor(imgs[i], cv2.COLOR_BGR2RGB)
+            except:
+                imgs[i] = cv2.cvtColor(imgs[i], cv2.COLOR_GRAY2RGB)
         ax.imshow(imgs[i])
         ax.set_xticks([])
         ax.set_yticks([])

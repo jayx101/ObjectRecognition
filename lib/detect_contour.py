@@ -13,8 +13,8 @@ TEST_PATH = '../dataset/test'
 cap = cv2.VideoCapture(1)
 cap.set(3, 1280)
 cap.set(4, 720)
-# fgbg = cv2.createBackgroundSubtractorMOG2(500, -1, True)
-fgbg = cv2.BackgroundSubtractorMOG2(300, 100, True)
+fgbg = cv2.createBackgroundSubtractorMOG2(500, -1, True)
+# fgbg = cv2.BackgroundSubtractorMOG2(300, 100, True)
 
 # initialize the list of tracked points, the frame counter,
 # and the coordinate deltas
@@ -48,7 +48,7 @@ def removeBackGround(im):
 def getContours(thresh, drawObj=True):
     radius = 30
     # get countours from thresholded image
-    cnts, hierarchy = cv2.findContours(thresh.copy(),
+    _, cnts, hierarchy = cv2.findContours(thresh.copy(),
                                  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # only proceed if at least one contour was found
@@ -169,11 +169,9 @@ def predictImageAndStore(img, isdump=False):
     return pred_name, dist_hyp
 
 def drawKeypoints(im):
-    surf = cv2.SURF(400)
-
+    surf = cs.surf
     # Find keypoints and descriptors directly
     kp, des = surf.detectAndCompute(im, None)
-    surf.hessianThreshold = 400 
     kp, des = surf.detectAndCompute(im, None)
     img_kp = cv2.drawKeypoints(im, kp, None, (0, 0, 255), 4)
 
