@@ -35,7 +35,6 @@ def _cropCoords(cnts, feather, min_area=50):
     for cnt in cnts:
         if cv2.contourArea(cnt) > min_area:
             cnt_re = cnt.reshape(len(cnt), 2)
-            print cnt_re.shape
             filt_cnts.append(cnt_re)
 
     cnts = np.concatenate(filt_cnts, axis=0)
@@ -87,7 +86,8 @@ def _createRedMask(im):
     im = cv2.GaussianBlur(im, (9, 9), 0)
 
     # create NumPy arrays from the boundaries
-    lower, upper = [20, 20, 70], [125, 99, 250]
+    lower, upper = [5, 5, 70], [150, 118, 250]
+    # lower, upper = [20, 20, 70], [125, 99, 250]
     lower = np.array(lower, dtype="uint8")
     upper = np.array(upper, dtype="uint8")
 
@@ -147,7 +147,7 @@ def cropRedImage(im, disp_all=False):
     imgs.append(im_crop)
 
     # display all images
-    it.display_multi(imgs, False, cols=2)
+    if disp_all: it.display_multi(imgs, False, cols=2)
 
     return im_crop
 
@@ -155,8 +155,8 @@ def testCrops(path):
     for imp in os.listdir(path):
         print imp
         im = cv2.imread(path + imp)
-        cropRedImage(im)
+        cropRedImage(im, True)
         # _cropImage(im, True)
         # it.display_multi(imgs)
 
-testCrops('../dataset/dump/')
+# testCrops('../dataset/train/trigger/')

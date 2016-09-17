@@ -5,6 +5,7 @@ import imagetransform as it
 from collections import deque
 import classification as cs
 from sklearn.svm import LinearSVC
+
 # constants
 RADIUS = 50
 TRAIN_PATH = '../dataset/train'
@@ -14,7 +15,6 @@ cap = cv2.VideoCapture(1)
 cap.set(3, 1280)
 cap.set(4, 720)
 fgbg = cv2.createBackgroundSubtractorMOG2(500, -1, True)
-# fgbg = cv2.BackgroundSubtractorMOG2(300, 100, True)
 
 # initialize the list of tracked points, the frame counter,
 # and the coordinate deltas
@@ -151,25 +151,29 @@ def predictImageAndStore(img, isdump=False):
     Return predition, dist from hyperplane
     '''
 
-    weights = cs.getClassWeights()
+    cs.setClassifierParams(verbose=True, crop=False, bow_size=400, hessian=400, grayscale=False)
+
     train_data = cs.getTrainData(False)
-    clf = LinearSVC(class_weight=weights)
+    clf = LinearSVC(class_weight='balanced')
     clf.fit(train_data[0], train_data[1])
 
     y_pred, dist_hyp = cs.predictImg(clf, img)
+
     path = cs.TRAIN_PATH + cs.class2Name(y_pred)[0] + '/'
     if isdump: path = '../dataset/dump/'    # if isdump flag is set just put result in dump folder
+
     # get the classname from code
-    pred_name = cs.class2Name(y_pred)[0]
     # generate random file name and store
     cv2.imwrite(path + pred_name + "foundimg" +
                 str(random.randint(1, 99999999)) +
-                ".jpg", im) # writes image test.bmp to disk
+                ".jpg", img) # writes image test.bmp to disk
 
     return pred_name, dist_hyp
 
 def drawKeypoints(im):
     surf = cs.surf
+    # surf.setHessianThreshold(5000)
+
     # Find keypoints and descriptors directly
     kp, des = surf.detectAndCompute(im, None)
     kp, des = surf.detectAndCompute(im, None)
@@ -182,7 +186,8 @@ while(1):
     _, im = cap.read()
 
     im_orig = im.copy()
-    im = it.resize(im, 600)
+
+    im = it.resize(im, 300)
 
     img_height, img_width, _ = im.shape
 
@@ -228,7 +233,8 @@ while(1):
         pred, hyp = predictImageAndStore(im_orig)
         y_pred = pred + str(hyp)
     elif k == ord('d'):
-        pred, hyp = predictImageAndStore(im, isdump=True)
+        print im_orig.size, '3'
+        pred, hyp = predictImageAndStore(im_orig, isdump=True)
         y_pred = pred + str(hyp)
         a = im.copy()
     elif k == ord('t'):

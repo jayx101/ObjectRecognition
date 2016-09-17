@@ -1,20 +1,23 @@
 import numpy as np
 import pandas as pd
 import cv2, os
-from sklearn.svm import LinearSVC
+# from sklearn.svm import LinearSVC
 import imutils
 import joblib
 from sklearn import metrics
+import autothresh as improc
 # from SimpleCV import (HueHistogramFeatureExtractor, EdgeHistogramFeatureExtractor, HaarLikeFeatureExtractor, ImageClass)
 
 path_prefix = '/home/opencv/ObjectRecognition/'
 surf = cv2.xfeatures2d.SURF_create(400)
-simple_cv = False 
+simple_cv = False
 
 # CONSTANTS
 TEST_PATH = path_prefix + 'dataset/test/'
 TRAIN_PATH = path_prefix + 'dataset/train/'
 OUTLIERS_PATH = path_prefix + 'dataset/outliers/'
+
+params = {}
 
 def getClasses():
     '''
@@ -71,7 +74,8 @@ def preProcessImages(image_paths):
     descriptors = []
     # loop through images in path and get desciptors
     for image_path in image_paths:
-        im = cv2.imread(image_path)
+        # im = cv2.imread(image_path)
+        im = imgPrePreprocess(image_path)
         kpts = surf.detect(im)
         kpts, des = surf.compute(im, kpts)
         descriptors.append(des)
@@ -92,8 +96,11 @@ def getSimpleFeat(img):
 
     return feat
 
-def createBOWVocab(path_train,  bow_size=400):
-    bow_train = cv2.BOWKMeansTrainer(bow_size)
+def createBOWVocab(path_train):
+    if params is None:
+        raise ValueError('first set classifier parameters')
+
+    bow_train = cv2.BOWKMeansTrainer(params['bow_size'])
 
     for des in preProcessImages(path_train):
         bow_train.add(des)
@@ -102,16 +109,51 @@ def createBOWVocab(path_train,  bow_size=400):
 
     return voc
 
+def setClassifierParams(bow_size=100, crop=False, resize=False, resize_width=600,
+                       grayscale=False, hessian=400, verbose=False):
+    '''
+    Set all parameters needed to run this classifier
+    '''
+    params['crop'] = crop
+    params['resize'] = resize
+    params['resize_width'] = resize_width
+    params['grayscale'] = grayscale
+    params['hessian'] = hessian
+    params['bow_size'] = bow_size
+    params['verbose'] = verbose
+
+    surf.setHessianThreshold(hessian)
+
+def imgPrePreprocess(im):
+
+    if not any(params):
+        raise ValueError('first set classifier parameters using setClassifierParams()')
+
+    # check if a path or image is passed
+    if isinstance(im, basestring):
+        im = cv2.imread(im)
+    if params['crop']:
+        im = improc.cropRedImage(im, False)
+    if params['resize']:
+        im = imutils.resize(im, width=params['resize_width'])
+    if params['grayscale']:
+        im = cv2.cvtColor(im, 6)
+    if params['verbose']:
+        cv2.imshow('frame', im)
+        cv2.waitKey(100)
+
+    return im
+
 def extractX(image_paths, voc):
     X = []
-    print 'started extracting feautes'
 
     bow_desc_extractor = createMatcher(voc)
 
     for imagepath in image_paths:
-        im = cv2.imread(imagepath,0)
-        # im = imutils.resize(im, width=300)
-        # print 'resize'
+
+        # run image transformation pipeline
+        im = imgPrePreprocess(imagepath)
+
         featureset = bow_desc_extractor.compute(im, surf.detect(im))
         if simple_cv:
             simple_feat = getSimpleFeat(im)
@@ -119,15 +161,15 @@ def extractX(image_paths, voc):
             featureset = np.concatenate((featureset, simple_feat), axis=1)
         X.extend(featureset)
 
-    print 'done extracting features'
-
     return X
 
 def extractXfromimg(im, voc):
     X = []
     bow_desc_extractor = createMatcher(voc)
 
-    im = imutils.resize(im, width=300)
+    # run image transformation pipeline
+    im = imgPrePreprocess(im)
+
     featureset = bow_desc_extractor.compute(im, surf.detect(im))
     if simple_cv:
         simple_feat = getSimpleFeat(im)
@@ -243,9 +285,8 @@ def predict(model, persist=False):
 
 def predictImg(model, img):
 
-    # get test data tuple 0=X, 1=y
+    # get test data tuple 0=X, 1=y, 2=vocab
     train_data = joblib.load(path_prefix + "lib/X.pkl")
-    print train_data[2]
     X = extractXfromimg(img, train_data[2])
 
     y_pred = model.predict(X)
